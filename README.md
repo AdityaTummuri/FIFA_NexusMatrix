@@ -21,7 +21,16 @@ The FIFA Nexus Matrix directly addresses **Challenge 04: Stadium Operations Opti
     *   **Interactive WebAR HUD**: Empowers fans with mobile-first WebAR navigation, local menu translation using Google Gemini Multimodal APIs, and in-seat food delivery checking.
     *   **Voucher Incentive Loops**: Renders dynamic discount vouchers to fans in surge zones, incentivizing them to move to under-utilized stadium zones and reducing bottlenecks.
 
-### 3. Key Differentiators vs Simple Chatbots/Dashboards
+### 3. Operations ↔ Fan Experience Bridge
+The system operates as a **closed-loop feedback cycle**:
+1. **Detect**: The backend fluid solver detects a density spike (e.g., $\ge 2.2 \text{ pax/m}^2$ in Zone C3).
+2. **Dispatch**: It automatically triggers localized operations (HVAC cooling, restocking concession stands) *and* constructs a dynamic fan voucher.
+3. **Broadcast**: A `surge_alert` is broadcasted via WebSockets to all connected fan clients.
+4. **Incentivize**: The fan's AR HUD renders a modal offering a 20% discount if they navigate to an under-utilized zone (e.g., A1).
+5. **Route**: When the fan clicks "Navigate", the WebGL overlay draws a 3D arrow guiding them away from the bottleneck.
+6. **Resolve**: As fans disperse, the local density drops, the solver stabilizes, and the operations loop closes flawlessly.
+
+### 4. Key Differentiators vs Simple Chatbots/Dashboards
 *   **Active vs Passive**: Rather than passively displaying crowd status, the system closes the loop by routing fans dynamically using financial incentives and WebAR guides.
 *   **Mathematical Forecasting**: Extrapolates crowd trends using physics-based mass conservation (continuity equation + LWR speed decay) instead of static thresholding.
 
@@ -125,6 +134,22 @@ pnpm dev
 ```
 Open your browser and navigate to `http://localhost:3000`.
 
+### 4. Running the Test Suites
+The system includes comprehensive test coverage for both backend (Python) and frontend (React/TypeScript).
+
+**Backend (pytest):**
+```bash
+cd backend
+source .venv/bin/activate
+pytest -v
+```
+
+**Frontend (vitest):**
+```bash
+cd frontend
+npx vitest run
+```
+
 ---
 
 ## 🔒 Security & Build Compliance
@@ -155,20 +180,38 @@ FIFA_NexusMatrix/
 │   │   │   └── triggers.py
 │   │   ├── __init__.py
 │   │   └── main.py
+│   ├── tests/
+│   │   ├── conftest.py
+│   │   ├── test_fluid_solver.py
+│   │   ├── test_schemas.py
+│   │   ├── test_telemetry_sim.py
+│   │   ├── test_triggers.py
+│   │   ├── test_vision_router.py
+│   │   ├── test_ws_ops.py
+│   │   └── __init__.py
 │   ├── requirements.txt
 │   └── .env (Excluded from Git Tracking)
 └── frontend/
     ├── package.json
     ├── pnpm-lock.yaml
+    ├── pnpm-workspace.yaml
     ├── tsconfig.json
     ├── vite.config.ts
+    ├── vitest.config.ts
     ├── index.html
     └── src/
         ├── App.tsx
         ├── main.tsx
         ├── vite-env.d.ts
+        ├── config.ts
+        ├── __tests__/
+        │   ├── App.test.tsx
+        │   ├── OperatorDashboard.test.tsx
+        │   ├── SurgeModal.test.tsx
+        │   └── setup.ts
         ├── components/
         │   ├── ARConcierge.tsx
+        │   ├── CameraErrorBoundary.tsx
         │   ├── OperatorDashboard.tsx
         │   ├── SurgeModal.tsx
         │   └── WayfindingOverlay.tsx

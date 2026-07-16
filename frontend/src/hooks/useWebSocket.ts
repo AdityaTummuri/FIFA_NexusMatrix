@@ -61,11 +61,27 @@ export interface SurgeAlert {
 }
 
 /**
+ * Return type interface for the useWebSocket hook.
+ */
+export interface UseWebSocketReturn {
+  /** Live telemetry data for all stadium zones. */
+  zoneData: ZoneTelemetry[];
+  /** Active surge alert, or null if no alert is active. */
+  surgeAlert: SurgeAlert | null;
+  /** Setter to manually inject a surge alert (used for demo mode). */
+  setSurgeAlert: React.Dispatch<React.SetStateAction<SurgeAlert | null>>;
+  /** Clears the active surge alert. */
+  clearSurgeAlert: () => void;
+  /** Current WebSocket connection status. */
+  connectionStatus: 'connecting' | 'connected' | 'disconnected';
+}
+
+/**
  * Hook to manage real-time WebSocket connection to the predictive operator core.
  * Handles automatic reconnects using exponential backoff, parses state telemetry ticks,
  * and tracks crowd surge alerts.
  */
-export const useWebSocket = () => {
+export const useWebSocket = (): UseWebSocketReturn => {
   const [zoneData, setZoneData] = useState<ZoneTelemetry[]>([]);
   const [surgeAlert, setSurgeAlert] = useState<SurgeAlert | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');

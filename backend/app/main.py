@@ -53,8 +53,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from typing import Dict
+
 @app.get("/health")
-async def health_check():
+async def health_check() -> Dict[str, str]:
     """
     Service health check endpoint.
     """

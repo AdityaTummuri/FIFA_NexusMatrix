@@ -1,11 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
+ * Return type interface for the useCamera hook.
+ */
+export interface UseCameraReturn {
+  /** Ref to the HTMLVideoElement displaying the camera stream. */
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  /** Ref to an offscreen HTMLCanvasElement used for frame capture. */
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  /** Captures the current video frame as a base64 JPEG string (without MIME prefix). */
+  captureFrame: () => string | null;
+  /** Whether the camera stream is active and ready. */
+  isReady: boolean;
+  /** Human-readable error message if camera initialization failed. */
+  error: string | null;
+}
+
+/**
  * Hook to access and manage the user's camera feed via WebRTC.
  * Falls back to mock camera mode if system permissions are rejected or unavailable.
  * Provides a method to capture base64 snapshots of the current frame.
  */
-export const useCamera = () => {
+export const useCamera = (): UseCameraReturn => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -15,7 +31,7 @@ export const useCamera = () => {
   useEffect(() => {
     let active = true;
 
-    const startCamera = async () => {
+    const startCamera = async (): Promise<void> => {
       try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           throw new Error('Camera APIs are not supported on this browser.');
@@ -30,17 +46,19 @@ export const useCamera = () => {
           streamRef.current = stream;
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
-            videoRef.current.play().catch((err) => {
-              console.error('Error playing video stream:', err);
+            videoRef.current.play().catch((playErr: unknown) => {
+              const message = playErr instanceof Error ? playErr.message : 'Unknown playback error';
+              console.error('Error playing video stream:', message);
             });
           }
           setIsReady(true);
           setError(null);
         }
-      } catch (err: any) {
-        console.warn('Camera initiation failed, falling back to mock camera mode:', err.message);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to access camera.';
+        console.warn('Camera initiation failed, falling back to mock camera mode:', message);
         if (active) {
-          setError(err.message || 'Failed to access camera.');
+          setError(message);
           setIsReady(false);
         }
       }
@@ -84,8 +102,9 @@ export const useCamera = () => {
       const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
       // Strip off the header "data:image/jpeg;base64," to match expected base64 content
       return dataUrl.split(',')[1] || null;
-    } catch (err) {
-      console.error('Failed to capture frame from video canvas:', err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown canvas capture error';
+      console.error('Failed to capture frame from video canvas:', message);
       return null;
     }
   };
@@ -98,4 +117,3 @@ export const useCamera = () => {
     error,
   };
 };
-

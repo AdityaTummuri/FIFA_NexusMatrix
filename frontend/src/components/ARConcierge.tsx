@@ -17,6 +17,7 @@ interface ARConciergeProps {
 export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearVector }) => {
   const { videoRef, canvasRef, captureFrame, isReady, error } = useCamera();
   const [loading, setLoading] = useState(false);
+  const [activeMode, setActiveMode] = useState<'WAYFINDING' | 'MENU_TRANSLATION' | 'SEAT_DELIVERY' | null>(null);
   
   // local state for wayfinding overlay vector
   const [localVector, setLocalVector] = useState<{ angle_deg: number; distance_m: number } | null>(null);
@@ -44,8 +45,9 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
     }
   }, [activeVector]);
 
-  const handleAction = async (mode: 'WAYFINDING' | 'MENU_TRANSLATION' | 'SEAT_DELIVERY') => {
+  const handleAction = async (mode: 'WAYFINDING' | 'MENU_TRANSLATION' | 'SEAT_DELIVERY'): Promise<void> => {
     setLoading(true);
+    setActiveMode(mode);
     
     // 1. Capture base64 matrix
     let base64Image = captureFrame();
@@ -109,8 +111,9 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
           });
         }
       }
-    } catch (err: any) {
-      console.error('Vision analysis request failed:', err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown vision request error';
+      console.error('Vision analysis request failed:', message);
       // Fallback UI alert
       setSheetContent({
         title: 'CONNECTION OFFLINE',
@@ -243,8 +246,9 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
       {/* 4. Frosted Glass Bottom HUD Panel */}
       <div
         className="glass-panel"
-        role="group"
+        role="toolbar"
         aria-label="AR HUD Controls"
+        aria-busy={loading}
         style={{
           position: 'absolute',
           bottom: '20px',
@@ -262,6 +266,8 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
           id="btn-scan-menu"
           onClick={() => handleAction('MENU_TRANSLATION')}
           aria-label="Scan food stall menu board to translate it to English"
+          aria-pressed={activeMode === 'MENU_TRANSLATION'}
+          aria-expanded={sheetContent?.mode === 'menu'}
           style={{
             flex: 1,
             backgroundColor: 'rgba(255,255,255,0.07)',
@@ -289,6 +295,8 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
           id="btn-find-route"
           onClick={() => handleAction('WAYFINDING')}
           aria-label="Scan current direction to load wayfinding arrow"
+          aria-pressed={activeMode === 'WAYFINDING'}
+          aria-expanded={sheetContent?.mode === 'route'}
           style={{
             flex: 1,
             backgroundColor: 'rgba(0, 165, 80, 0.2)',
@@ -316,6 +324,8 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
           id="btn-order-seat"
           onClick={() => handleAction('SEAT_DELIVERY')}
           aria-label="Scan seat number for in-seat delivery validation"
+          aria-pressed={activeMode === 'SEAT_DELIVERY'}
+          aria-expanded={sheetContent?.mode === 'seat'}
           style={{
             flex: 1,
             backgroundColor: 'rgba(255,255,255,0.07)',
@@ -440,6 +450,7 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
               {sheetContent.orderUrl && (
                 <button
                   onClick={() => alert(`Redirecting to Seat Delivery: ${sheetContent.orderUrl}`)}
+                  aria-label="Place a one-click order delivered to your seat"
                   style={{
                     width: '100%',
                     backgroundColor: 'var(--color-accent)',
@@ -486,6 +497,7 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
               </p>
               <button
                 onClick={() => alert(`Redirecting to checkout: ${sheetContent.orderUrl}`)}
+                aria-label="Open concession order checkout for in-seat delivery"
                 style={{
                   width: '100%',
                   backgroundColor: 'var(--color-primary)',

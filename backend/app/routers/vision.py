@@ -9,7 +9,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Dict, Any
 import httpx
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
 from app.models.schemas import VisionRequest, VisionResponse, TranslationItem, WayfindingVector, VoucherRedemption
 
 logger = logging.getLogger("nexus-vision")
@@ -19,6 +19,24 @@ router = APIRouter()
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024  # 5MB limit
 MAX_BASE64_CHARS = int(MAX_IMAGE_SIZE_BYTES * (4 / 3))
+
+# Simple in-memory rate limiter: max 10 requests per 60 seconds per IP
+from collections import defaultdict
+import time
+RATE_LIMIT_WINDOW = 60
+RATE_LIMIT_MAX_REQUESTS = 10
+_rate_limits: Dict[str, list] = defaultdict(list)
+
+def is_rate_limited(client_ip: str) -> bool:
+    now = time.time()
+    history = _rate_limits[client_ip]
+    # Remove old requests outside the window
+    history = [t for t in history if now - t < RATE_LIMIT_WINDOW]
+    _rate_limits[client_ip] = history
+    if len(history) >= RATE_LIMIT_MAX_REQUESTS:
+        return True
+    history.append(now)
+    return False
 
 # Local mock datasets for offline mode
 MOCK_TRANSLATIONS: Dict[str, list] = {
@@ -35,12 +53,19 @@ MOCK_TRANSLATIONS: Dict[str, list] = {
 }
 
 @router.post("/api/vision", response_model=VisionResponse)
-async def analyze_vision_frame(request: VisionRequest) -> VisionResponse:
+async def analyze_vision_frame(request: VisionRequest, http_request: Request) -> VisionResponse:
     """
     Analyzes live camera frames from the WebAR client.
     Supports Menu Translation, Wayfinding orientation, and Seat-delivery checking.
     Utilizes the Google Gemini API with fallback mock responses.
     """
+    # Security: Apply rate limiting based on client IP
+    client_ip = http_request.client.host if http_request.client else "127.0.0.1"
+    if is_rate_limited(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many requests. Please wait before retrying."
+        )
     # Security: Validate base64 image size to prevent memory abuse
     if len(request.image_b64) > MAX_BASE64_CHARS:
         raise HTTPException(

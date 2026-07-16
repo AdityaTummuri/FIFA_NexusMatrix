@@ -114,10 +114,21 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     """
     await manager.connect(websocket)
     try:
-        # Keep connection open. If client sends anything, discard or log.
+        # Keep connection open and validate incoming JSON payloads
         while True:
             data = await websocket.receive_text()
-            logger.debug(f"Received data from websocket client: {data}")
+            try:
+                payload = json.loads(data)
+                # Verify it's a valid object
+                if not isinstance(payload, dict):
+                    raise ValueError("Payload must be a JSON object")
+                logger.debug(f"Received valid JSON from client: {payload}")
+            except json.JSONDecodeError:
+                logger.warning(f"Received malformed JSON from client: {data}")
+                await websocket.send_text(json.dumps({"error": "Malformed JSON payload"}))
+            except ValueError as ve:
+                logger.warning(f"Invalid payload format: {ve}")
+                await websocket.send_text(json.dumps({"error": str(ve)}))
     except WebSocketDisconnect:
         manager.disconnect(websocket)
     except Exception as e:

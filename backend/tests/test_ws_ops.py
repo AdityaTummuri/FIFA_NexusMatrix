@@ -59,3 +59,17 @@ async def test_connection_manager_broadcast():
     mock_ws_1.send_text.assert_called_once_with(message)
     mock_ws_2.send_text.assert_called_once_with(message)
 
+def test_websocket_json_validation(client):
+    """Verify malformed JSON payloads are rejected gracefully."""
+    with client.websocket_connect("/ws/ops") as websocket:
+        # Send malformed JSON (not a dict)
+        websocket.send_text("[\"not\", \"a\", \"dict\"]")
+        response = websocket.receive_json()
+        assert "error" in response
+        assert response["error"] == "Payload must be a JSON object"
+        
+        # Send invalid JSON
+        websocket.send_text("this is not json")
+        response = websocket.receive_json()
+        assert "error" in response
+        assert response["error"] == "Malformed JSON payload"

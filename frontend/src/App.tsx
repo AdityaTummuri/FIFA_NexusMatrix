@@ -3,6 +3,7 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { ARConcierge } from './components/ARConcierge';
 import { OperatorDashboard } from './components/OperatorDashboard';
 import { SurgeModal } from './components/SurgeModal';
+import { CameraErrorBoundary } from './components/CameraErrorBoundary';
 
 function App() {
   const {
@@ -113,10 +114,12 @@ function App() {
       <main role="main" className="app-container" id="app-main-content" style={{ flex: 1 }}>
         {/* Left: AR Camera HUD Overlay */}
         <section id="ar-viewport-section" aria-label="AR Camera HUD Viewport" style={{ position: 'relative', minHeight: '450px', height: '100%' }}>
-          <ARConcierge
-            activeVector={activeVector}
-            onClearVector={() => setActiveVector(null)}
-          />
+          <CameraErrorBoundary>
+            <ARConcierge
+              activeVector={activeVector}
+              onClearVector={() => setActiveVector(null)}
+            />
+          </CameraErrorBoundary>
         </section>
 
         {/* Right: Operational Status Grid */}
