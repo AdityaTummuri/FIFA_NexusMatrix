@@ -11,13 +11,15 @@ export const OperatorDashboard: React.FC<OperatorDashboardProps> = ({ zoneData, 
   // Hardcoded fallback list of zones to show grid skeleton if no WS tick is active
   const defaultZonesList = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'C3', 'C4'];
 
-  const getStatusColor = (density: number) => {
+  const getStatusColor = (density: number, isMedicalOverride?: boolean) => {
+    if (isMedicalOverride) return '#00D2FF';
     if (density < WARNING_DENSITY_THRESHOLD) return 'var(--color-primary)';
     if (density < CRITICAL_DENSITY_THRESHOLD) return 'var(--color-accent)';
     return 'var(--color-danger)';
   };
 
-  const getStatusLabel = (density: number) => {
+  const getStatusLabel = (density: number, isMedicalOverride?: boolean) => {
+    if (isMedicalOverride) return 'SOS EMERGENCY';
     if (density < WARNING_DENSITY_THRESHOLD) return 'SAFE';
     if (density < CRITICAL_DENSITY_THRESHOLD) return 'WARNING';
     return 'CRITICAL';
@@ -38,6 +40,12 @@ export const OperatorDashboard: React.FC<OperatorDashboardProps> = ({ zoneData, 
         overflowY: 'auto',
       }}
     >
+      <style>{`
+        @keyframes blueFlash {
+          0% { border-color: #00D2FF; box-shadow: 0 0 5px rgba(0, 210, 255, 0.4); }
+          100% { border-color: #0055FF; box-shadow: 0 0 20px rgba(0, 85, 255, 0.8); }
+        }
+      `}</style>
       {/* Top Status Bar */}
       <div
         style={{
@@ -104,8 +112,8 @@ export const OperatorDashboard: React.FC<OperatorDashboardProps> = ({ zoneData, 
           const telemetry = zoneData.find((z) => z.zone_id === zoneId);
           const density = telemetry ? telemetry.density_pax_m2 : 0.0;
           const predicted = telemetry ? telemetry.predicted_density_15m : 0.0;
-          const statusColor = getStatusColor(density);
-          const statusLabel = getStatusLabel(density);
+          const statusColor = getStatusColor(density, telemetry?.is_medical_override);
+          const statusLabel = getStatusLabel(density, telemetry?.is_medical_override);
           
           // Determine trend (Compare predicted vs current)
           const isUpTrend = predicted > density;
@@ -127,6 +135,7 @@ export const OperatorDashboard: React.FC<OperatorDashboardProps> = ({ zoneData, 
                 background: telemetry
                   ? `linear-gradient(135deg, rgba(16, 22, 42, 0.75) 0%, ${statusColor}15 100%)`
                   : 'rgba(16, 22, 42, 0.45)',
+                animation: telemetry?.is_medical_override ? 'blueFlash 1s infinite alternate' : 'none',
               }}
             >
               {/* Card Header */}

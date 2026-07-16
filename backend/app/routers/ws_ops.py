@@ -4,9 +4,11 @@ import logging
 from datetime import datetime, timezone
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from typing import List, Dict, Any, AsyncGenerator
+from pydantic import BaseModel
 from app.services.telemetry_sim import simulator_instance
 from app.services.fluid_solver import predict_bottleneck_path
 from app.webhooks.triggers import dispatch_surge_alert
+from app.services.redis_pubsub import redis_service
 
 logger = logging.getLogger("nexus-ws")
 router = APIRouter()
@@ -149,4 +151,30 @@ async def get_stadium_state() -> Dict[str, Any]:
             "zones": []
         }
     return tick
+
+
+class EmergencyRequest(BaseModel):
+    zone_id: str
+
+@router.post("/api/emergency")
+async def trigger_emergency(request: EmergencyRequest) -> Dict[str, Any]:
+    """
+    Receives SOS emergency alerts and immediately broadcasts a MEDICAL_OVERRIDE payload
+    via Redis and WebSockets to flash the target zone blue.
+    """
+    payload = {
+        "event": "medical_override",
+        "zone_id": request.zone_id,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    payload_json = json.dumps(payload)
+    
+    # Broadcast via Redis
+    redis_service.publish("nexus:emergencies", payload_json)
+    
+    # Broadcast via WebSockets
+    await manager.broadcast(payload_json)
+    
+    logger.warning(f"MEDICAL OVERRIDE broadcasted for zone: {request.zone_id}")
+    return {"success": True, "message": "Emergency override dispatched successfully"}
 

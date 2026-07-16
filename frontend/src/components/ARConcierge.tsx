@@ -18,6 +18,22 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
   const { videoRef, canvasRef, captureFrame, isReady, error } = useCamera();
   const [loading, setLoading] = useState(false);
   const [activeMode, setActiveMode] = useState<'WAYFINDING' | 'MENU_TRANSLATION' | 'SEAT_DELIVERY' | null>(null);
+  const [accessibilityMode, setAccessibilityMode] = useState(false);
+  
+  const handleSOS = async (): Promise<void> => {
+    try {
+      await fetch(`${BACKEND_URL}/api/emergency`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ zone_id: 'C3' }),
+      });
+      alert('SOS Medical Alert Dispatched! Help is on the way.');
+    } catch (err: unknown) {
+      console.error('Failed to send SOS alert:', err);
+    }
+  };
   
   // local state for wayfinding overlay vector
   const [localVector, setLocalVector] = useState<{ angle_deg: number; distance_m: number } | null>(null);
@@ -59,7 +75,11 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
     }
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/vision`, {
+      let url = `${BACKEND_URL}/api/vision?client=webar`;
+      if (mode === 'WAYFINDING' && accessibilityMode) {
+        url += '&inclusive=true';
+      }
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -257,11 +277,70 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
           padding: '16px',
           zIndex: 50,
           display: 'flex',
-          justifyContent: 'space-around',
-          alignItems: 'center',
+          flexDirection: 'column',
           gap: '12px',
         }}
       >
+        {/* Social Good: Accessibility & Medical Emergency Controls */}
+        <div
+          style={{
+            display: 'flex',
+            width: '100%',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '16px',
+            borderBottom: '1px solid var(--color-border)',
+            paddingBottom: '12px',
+          }}
+        >
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#FFF',
+              fontSize: '12px',
+              cursor: 'pointer',
+              fontWeight: 600,
+              userSelect: 'none',
+            }}
+          >
+            <input
+              type="checkbox"
+              id="toggle-accessibility-mode"
+              checked={accessibilityMode}
+              onChange={(e) => setAccessibilityMode(e.target.checked)}
+              style={{
+                width: '16px',
+                height: '16px',
+                accentColor: 'var(--color-accent)',
+                cursor: 'pointer',
+              }}
+            />
+            ♿ Accessibility Mode
+          </label>
+
+          <button
+            id="btn-sos-medical"
+            onClick={handleSOS}
+            style={{
+              backgroundColor: '#FF3333',
+              color: '#FFF',
+              border: '2px solid #FF9999',
+              borderRadius: '8px',
+              padding: '6px 14px',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              boxShadow: '0 0 10px rgba(255, 51, 51, 0.4)',
+              transition: 'transform 0.1s',
+            }}
+          >
+            🚨 SOS MEDICAL
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', width: '100%', justifyContent: 'space-around', alignItems: 'center', gap: '12px' }}>
         <button
           id="btn-scan-menu"
           onClick={() => handleAction('MENU_TRANSLATION')}
@@ -348,6 +427,7 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
           <span role="img" aria-label="Seat chair icon">🪑</span>
           <span>Order Seat</span>
         </button>
+        </div>
       </div>
 
       {/* 5. Slide-Up HUD Info Sheet */}

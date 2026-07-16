@@ -73,3 +73,10 @@ def test_websocket_json_validation(client):
         response = websocket.receive_json()
         assert "error" in response
         assert response["error"] == "Malformed JSON payload"
+
+def test_emergency_override_endpoint(client):
+    """Verify that posting to /api/emergency successfully triggers medical override dispatch."""
+    response = client.post("/api/emergency", json={"zone_id": "C3"})
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+    assert "override dispatched successfully" in response.json()["message"]

@@ -27,6 +27,7 @@ export interface ZoneTelemetry {
   velocity_vector: VelocityVector;
   predicted_density_15m: number;
   status: 'SAFE' | 'WARNING' | 'CRITICAL';
+  is_medical_override?: boolean;
 }
 
 /**
@@ -85,6 +86,7 @@ export const useWebSocket = (): UseWebSocketReturn => {
   const [zoneData, setZoneData] = useState<ZoneTelemetry[]>([]);
   const [surgeAlert, setSurgeAlert] = useState<SurgeAlert | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
+  const [medicalOverrides, setMedicalOverrides] = useState<string[]>([]);
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectDelayRef = useRef<number>(INITIAL_RECONNECT_DELAY);
@@ -111,10 +113,25 @@ export const useWebSocket = (): UseWebSocketReturn => {
       try {
         const data = JSON.parse(event.data);
         if (data.event === 'telemetry_tick') {
-          setZoneData(data.zones || []);
+          const zones = (data.zones || []).map((z: any) => ({
+            ...z,
+            is_medical_override: medicalOverrides.includes(z.zone_id)
+          }));
+          setZoneData(zones);
         } else if (data.event === 'surge_alert') {
           console.warn('SURGE ALERT RECEIVED:', data);
           setSurgeAlert(data);
+        } else if (data.event === 'medical_override') {
+          console.warn('MEDICAL OVERRIDE RECEIVED:', data);
+          setMedicalOverrides((prev) => {
+            const next = [...new Set([...prev, data.zone_id])];
+            setZoneData((currentZones) =>
+              currentZones.map((z) =>
+                z.zone_id === data.zone_id ? { ...z, is_medical_override: true } : z
+              )
+            );
+            return next;
+          });
         }
       } catch (err) {
         console.error('Failed to parse WebSocket JSON message:', err);

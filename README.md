@@ -41,6 +41,16 @@ Instead of purely statistical models, the backend models the crowd as a compress
 
 ---
 
+## ♿ Social Good & Accessibility Impact
+
+The **Aura Module** introduces real-time crowd safety, step-free routing, and medical priority triggers designed to ensure stadium environments are inclusive and safe for all fans:
+
+*   **Step-Free & Accessible Routing**: When *Accessibility Mode* is activated on the fan's WebAR HUD, the routing calculations automatically query routes that avoid stairs, escalators, and steep grade changes, utilizing ramps and elevators instead. The routing request appends `&inclusive=true` to fetch specialized routes.
+*   **Sensory-Friendly Crowd Avoidance**: Fans with sensory sensitivities or anxiety can request alternative egress routes that explicitly bypass high-decibel zones, congested concession queues, and high-density zones, directing them through calmer corridor vectors.
+*   **Instant Medical Egress & SOS Triage**: In the event of a medical emergency, clicking the high-contrast *SOS Medical* button dispatches a priority POST request to `/api/emergency`. This bypasses default simulations and triggers a `MEDICAL_OVERRIDE` event, flashing the affected sector blue on the Operator Dashboard for instant dispatcher attention.
+
+---
+
 
 ## 🚀 Live Production Links
 
@@ -164,7 +174,6 @@ FIFA_NexusMatrix/
 ├── .gitignore
 ├── README.md
 ├── docker-compose.yml
-├── nexus_overview.md
 ├── backend/
 │   ├── app/
 │   │   ├── models/
