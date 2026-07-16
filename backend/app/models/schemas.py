@@ -95,3 +95,8 @@ class VisionResponse(BaseModel):
     success: bool
     fallback_used: bool
     result: Optional[dict] = None
+
+class VoucherRedemption(BaseModel):
+    model_config = ConfigDict(strict=True)
+    voucher_code: str
+    fan_zone: str

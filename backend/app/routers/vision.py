@@ -2,7 +2,7 @@ import os
 import logging
 import httpx
 from fastapi import APIRouter, HTTPException, status
-from app.models.schemas import VisionRequest, VisionResponse, TranslationItem, WayfindingVector
+from app.models.schemas import VisionRequest, VisionResponse, TranslationItem, WayfindingVector, VoucherRedemption
 
 logger = logging.getLogger("nexus-vision")
 router = APIRouter()
@@ -108,3 +108,15 @@ async def analyze_vision_frame(request: VisionRequest):
         fallback_used=use_fallback,
         result=result_data
     )
+
+@router.post("/api/voucher-redeemed")
+async def redeem_voucher(request: VoucherRedemption):
+    """
+    Logs active fan voucher redemptions.
+    """
+    logger.warning(f"VOUCHER REDEEMED: Code: {request.voucher_code} in Zone: {request.fan_zone}")
+    return {
+        "success": True,
+        "message": f"Voucher {request.voucher_code} successfully redeemed.",
+        "timestamp": os.getenv("TIMESTAMP") or "2026-07-16T05:30:54Z"
+    }

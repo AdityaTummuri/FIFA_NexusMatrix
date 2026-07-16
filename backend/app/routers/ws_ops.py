@@ -103,3 +103,18 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         logger.error(f"WebSocket connection error: {e}")
         manager.disconnect(websocket)
+
+@router.get("/api/stadium-state")
+async def get_stadium_state():
+    """
+    Returns the latest telemetry cache payload.
+    """
+    tick = latest_telemetry_cache.get("tick")
+    if not tick:
+        # Default empty response if simulator hasn't ticked yet
+        return {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "stadium_id": "metlife_stadium",
+            "zones": []
+        }
+    return tick
