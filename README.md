@@ -1,19 +1,15 @@
-# The FIFA Nexus Matrix
-
-### Smart Stadium Crowd Safety & Event Egress Management (FIFA World Cup 2026 Vertical)
+# The FIFA Nexus Matrix — Smart Stadium Crowd Safety & Event Egress Management (FIFA World Cup 2026)
 
 The **FIFA Nexus Matrix** is a closed-loop Bipartite Asynchronous Mesh engineered to solve high-density crowd bottlenecks during large-scale stadium events. By combining macroscopic fluid dynamics predictions on the backend with real-time WebAR overlays on the frontend, the system forecasts congestion points 15 minutes before they manifest and dynamically redistributes fan flows using automated concession incentives.
 
 ---
 
-## 🎯 FIFA World Cup 2026 Challenge Alignment (Challenge 04)
+## 🎯 Core Features & Capabilities
 
-### 1. Problem Statement
-During the FIFA World Cup 2026, hosting millions of fans across transit hubs, concourses, and stadiums (such as MetLife Stadium) presents massive crowd safety and operations challenges. High crowd densities lead to physical bottlenecks, increased safety risks, long queue wait times at concession stands, and localized HVAC stress. 
+### 1. Problem Statement & Scope
+During high-attendance sports events like the FIFA World Cup 2026, managing millions of fans across transit hubs, concourses, and stadiums (such as MetLife Stadium) presents massive crowd safety and operational challenges. High crowd densities lead to physical bottlenecks, increased safety risks, long queue wait times at concession stands, and localized HVAC stress. The **FIFA Nexus Matrix** provides a unified platform to address these crowd safety issues while enhancing the spectator experience.
 
-The FIFA Nexus Matrix directly addresses **Challenge 04: Stadium Operations Optimization & Fan Experience Enhancement**.
-
-### 2. How It Solves Both Halves
+### 2. Dual-Sided Integration Architecture
 *   **Stadium Operations Optimization (Backend)**: 
     *   **Macroscopic Predictive Fluid Dynamics**: Forecasts localized crowd surges 15 minutes in advance using real-time density-velocity field divergence computations.
     *   **Automated Closed-Loop Adjustments**: Automatically dispatches triggers to lower HVAC temperature thresholds in high-density zones to counteract metabolic heat loads and fires concessions restock tasks (e.g., water, drinks).
@@ -34,7 +30,7 @@ The system operates as a **closed-loop feedback cycle**:
 *   **Active vs Passive**: Rather than passively displaying crowd status, the system closes the loop by routing fans dynamically using financial incentives and WebAR guides.
 *   **Mathematical Forecasting**: Extrapolates crowd trends using physics-based mass conservation (continuity equation + LWR speed decay) instead of static thresholding.
 
-### 4. Mathematical Innovation
+### 5. Mathematical Innovation
 Instead of purely statistical models, the backend models the crowd as a compressible fluid:
 *   **Crowd Conservation (Continuity Equation)**: Ensures that people are neither created nor destroyed during walking transitions, tracking density fluxes between adjacent stadium zones.
 *   **LWR Density Damping**: Factors in the physical limits of human walking speeds (velocity decays to 0 as density reaches $4.5 \text{ pax/m}^2$).
