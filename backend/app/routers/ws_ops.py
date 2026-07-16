@@ -3,7 +3,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from typing import List, Dict
+from typing import List, Dict, Any, AsyncGenerator
 from app.services.telemetry_sim import simulator_instance
 from app.services.fluid_solver import predict_bottleneck_path
 from app.webhooks.triggers import dispatch_surge_alert
@@ -11,21 +11,43 @@ from app.webhooks.triggers import dispatch_surge_alert
 logger = logging.getLogger("nexus-ws")
 router = APIRouter()
 
+MAX_CONNECTIONS = 100
+
 class ConnectionManager:
-    def __init__(self):
+    """
+    Manages active WebSocket connections, handles client registration,
+    deregistration, and broadcasting telemetry data.
+    """
+    def __init__(self) -> None:
         self.active_connections: List[WebSocket] = []
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket) -> None:
+        """
+        Accepts a WebSocket connection and adds it to the active list,
+        enforcing the connection limit.
+        """
+        if len(self.active_connections) >= MAX_CONNECTIONS:
+            logger.warning("Rejected WebSocket connection: Max connections limit reached.")
+            await websocket.close(code=1008, reason="Max connection limit reached")
+            return
+
         await websocket.accept()
         self.active_connections.append(websocket)
         logger.info(f"New client connected. Total clients: {len(self.active_connections)}")
 
-    def disconnect(self, websocket: WebSocket):
+    def disconnect(self, websocket: WebSocket) -> None:
+        """
+        Removes a disconnected WebSocket client from the active list.
+        """
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
             logger.info(f"Client disconnected. Total clients: {len(self.active_connections)}")
 
-    async def broadcast(self, message: str):
+    async def broadcast(self, message: str) -> None:
+        """
+        Broadcasts a message string to all active WebSocket clients.
+        Automatically disconnects clients that fail to receive.
+        """
         disconnected = []
         for connection in self.active_connections:
             try:
@@ -43,9 +65,9 @@ manager = ConnectionManager()
 last_surge_timestamps: Dict[str, float] = {}
 
 # Keep track of latest telemetry tick for the static /api/stadium-state endpoint
-latest_telemetry_cache: Dict[str, any] = {}
+latest_telemetry_cache: Dict[str, Any] = {}
 
-async def telemetry_broadcast_loop():
+async def telemetry_broadcast_loop() -> None:
     """
     Simulates telemetry and broadcasts ticks to all connected clients at 1Hz.
     Triggers surge alerts when density threshold is breached.
@@ -85,13 +107,11 @@ async def telemetry_broadcast_loop():
         except Exception as e:
             logger.error(f"Error in telemetry broadcast loop: {e}", exc_info=True)
 
-# Start telemetry loop on app startup
-@router.on_event("startup")
-async def startup_event():
-    asyncio.create_task(telemetry_broadcast_loop())
-
 @router.websocket("/ws/ops")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket) -> None:
+    """
+    WebSocket endpoint for real-time operations dashboard telemetry subscription.
+    """
     await manager.connect(websocket)
     try:
         # Keep connection open. If client sends anything, discard or log.
@@ -105,7 +125,7 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(websocket)
 
 @router.get("/api/stadium-state")
-async def get_stadium_state():
+async def get_stadium_state() -> Dict[str, Any]:
     """
     Returns the latest telemetry cache payload.
     """
@@ -118,3 +138,4 @@ async def get_stadium_state():
             "zones": []
         }
     return tick
+

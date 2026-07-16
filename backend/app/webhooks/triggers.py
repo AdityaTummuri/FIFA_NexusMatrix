@@ -1,3 +1,10 @@
+"""
+The FIFA Nexus Matrix - Webhook and Alert Trigger Service.
+
+Dispatches operational adjustments (HVAC cooling updates, concession restocking alerts)
+and fan micro-incentive vouchers when crowd bottlenecks are predicted.
+"""
+
 import logging
 from datetime import datetime, timezone
 from app.models.schemas import (
@@ -10,7 +17,9 @@ logger = logging.getLogger("nexus-triggers")
 
 def dispatch_surge_alert(zone_id: str, predicted_density: float, destination_zone: str) -> SurgeAlert:
     """
-    Constructs a deterministic SurgeAlert schema and publishes it to Redis.
+    Constructs a deterministic SurgeAlert schema, triggers closed-loop stadium
+    operator endpoints (HVAC cooling and concession restock), and publishes the alert
+    to the Redis Pub/Sub queue for WebAR client redirection.
     """
     timestamp = datetime.now(timezone.utc).isoformat()
     
@@ -54,3 +63,4 @@ def dispatch_surge_alert(zone_id: str, predicted_density: float, destination_zon
     
     logger.warning(f"SURGE ALERT dispatched for zone {zone_id}. Extrapolated density 15m: {predicted_density}")
     return alert
+

@@ -1,15 +1,25 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { WS_URL, BACKEND_URL, INITIAL_RECONNECT_DELAY, MAX_RECONNECT_DELAY } from '../config';
 
+/**
+ * 2D Velocity components of crowd flow.
+ */
 export interface VelocityVector {
   vx: number;
   vy: number;
 }
 
+/**
+ * Geographic GPS location of stadium zone.
+ */
 export interface ZoneCoordinates {
   lat: number;
   lon: number;
 }
 
+/**
+ * Telemetry details for a stadium zone.
+ */
 export interface ZoneTelemetry {
   zone_id: string;
   coordinates: ZoneCoordinates;
@@ -19,6 +29,9 @@ export interface ZoneTelemetry {
   status: 'SAFE' | 'WARNING' | 'CRITICAL';
 }
 
+/**
+ * Operational surge warning alert event.
+ */
 export interface SurgeAlert {
   event: 'surge_alert';
   timestamp: string;
@@ -47,27 +60,31 @@ export interface SurgeAlert {
   };
 }
 
+/**
+ * Hook to manage real-time WebSocket connection to the predictive operator core.
+ * Handles automatic reconnects using exponential backoff, parses state telemetry ticks,
+ * and tracks crowd surge alerts.
+ */
 export const useWebSocket = () => {
   const [zoneData, setZoneData] = useState<ZoneTelemetry[]>([]);
   const [surgeAlert, setSurgeAlert] = useState<SurgeAlert | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectDelayRef = useRef<number>(1000);
+  const reconnectDelayRef = useRef<number>(INITIAL_RECONNECT_DELAY);
   const reconnectTimerRef = useRef<number | null>(null);
 
   const connect = useCallback(() => {
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/ops';
-    console.log(`Connecting to WebSocket: ${wsUrl}`);
+    console.log(`Connecting to WebSocket: ${WS_URL}`);
     setConnectionStatus('connecting');
 
-    const ws = new WebSocket(wsUrl);
+    const ws = new WebSocket(WS_URL);
     wsRef.current = ws;
 
     ws.onopen = () => {
       console.log('WebSocket connection established.');
       setConnectionStatus('connected');
-      reconnectDelayRef.current = 1000; // Reset exponential backoff
+      reconnectDelayRef.current = INITIAL_RECONNECT_DELAY; // Reset exponential backoff
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
@@ -94,7 +111,7 @@ export const useWebSocket = () => {
       
       // Exponential backoff reconnect
       const delay = reconnectDelayRef.current;
-      reconnectDelayRef.current = Math.min(delay * 2, 16000); // Max 16 seconds
+      reconnectDelayRef.current = Math.min(delay * 2, MAX_RECONNECT_DELAY);
 
       reconnectTimerRef.current = window.setTimeout(() => {
         connect();
@@ -110,8 +127,7 @@ export const useWebSocket = () => {
   useEffect(() => {
     const fetchInitialState = async () => {
       try {
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-        const response = await fetch(`${backendUrl}/api/stadium-state`);
+        const response = await fetch(`${BACKEND_URL}/api/stadium-state`);
         if (response.ok) {
           const data = await response.json();
           if (data && data.zones) {
@@ -149,3 +165,4 @@ export const useWebSocket = () => {
     connectionStatus,
   };
 };
+

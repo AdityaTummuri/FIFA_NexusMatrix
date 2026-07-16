@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 
+/**
+ * Hook to access and manage the user's camera feed via WebRTC.
+ * Falls back to mock camera mode if system permissions are rejected or unavailable.
+ * Provides a method to capture base64 snapshots of the current frame.
+ */
 export const useCamera = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -51,6 +56,10 @@ export const useCamera = () => {
     };
   }, []);
 
+  /**
+   * Captures the current frame from the running video element and returns
+   * a base64 encoded JPEG string (excluding MIME prefix).
+   */
   const captureFrame = (): string | null => {
     if (!videoRef.current) return null;
 
@@ -89,3 +98,4 @@ export const useCamera = () => {
     error,
   };
 };
+

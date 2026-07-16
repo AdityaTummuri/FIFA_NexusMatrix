@@ -63,10 +63,15 @@ function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'var(--color-bg)' }}>
+      {/* Accessibility screen-reader only announcer */}
+      <div id="sr-announcer" role="status" aria-live="polite" style={{ position: 'absolute', width: '1px', height: '1px', padding: '0', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: '0' }}>
+        {surgeAlert ? `Warning: Crowd surge alert active in Zone ${surgeAlert.zone_id}. Alternative zone is ${surgeAlert.triggers.fan_incentive.destination_zone}.` : ''}
+      </div>
+
       {/* 1. Header Bar */}
-      <header className="header-bar">
+      <header role="banner" className="header-bar" id="app-header">
         <div>
-          <h1 className="header-title">
+          <h1 className="header-title" id="app-main-title">
             THE FIFA <span style={{ color: 'var(--color-accent)' }}>NEXUS MATRIX</span>
           </h1>
           <span className="header-subtitle">Closed-Loop Crowd Dynamics & WebAR HUD</span>
@@ -74,7 +79,9 @@ function App() {
 
         {/* Demo Button */}
         <button
+          id="btn-demo-surge"
           onClick={triggerDemoSurge}
+          aria-label="Manually trigger demo crowd surge alert"
           style={{
             backgroundColor: 'transparent',
             color: 'var(--color-accent)',
@@ -103,9 +110,9 @@ function App() {
       </header>
 
       {/* 2. Main Split View Layout */}
-      <main className="app-container" style={{ flex: 1 }}>
+      <main role="main" className="app-container" id="app-main-content" style={{ flex: 1 }}>
         {/* Left: AR Camera HUD Overlay */}
-        <section style={{ position: 'relative', minHeight: '450px', height: '100%' }}>
+        <section id="ar-viewport-section" aria-label="AR Camera HUD Viewport" style={{ position: 'relative', minHeight: '450px', height: '100%' }}>
           <ARConcierge
             activeVector={activeVector}
             onClearVector={() => setActiveVector(null)}
@@ -113,13 +120,14 @@ function App() {
         </section>
 
         {/* Right: Operational Status Grid */}
-        <section style={{ height: '100%' }}>
+        <section id="ops-dashboard-section" aria-label="Operator Dashboard Status Panel" style={{ height: '100%' }}>
           <OperatorDashboard
             zoneData={zoneData}
             connectionStatus={connectionStatus}
           />
         </section>
       </main>
+
 
       {/* 3. Safety Voucher Alert Pop-up */}
       {surgeAlert && (

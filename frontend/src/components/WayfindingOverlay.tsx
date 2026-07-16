@@ -151,6 +151,7 @@ export const WayfindingOverlay: React.FC<WayfindingOverlayProps> = ({ vector, ac
   return (
     <div
       ref={mountRef}
+      aria-hidden="true"
       style={{
         position: 'absolute',
         top: 0,

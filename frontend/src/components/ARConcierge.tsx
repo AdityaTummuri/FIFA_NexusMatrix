@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useCamera } from '../hooks/useCamera';
 import { WayfindingOverlay } from './WayfindingOverlay';
+import { BACKEND_URL } from '../config';
 
 interface ARConciergeProps {
   activeVector: { angle_deg: number; distance_m: number } | null;
   onClearVector: () => void;
 }
 
+/**
+ * ARConcierge Component.
+ * Implements the mobile-first WebAR HUD display. Renders camera stream background,
+ * triggers multimodal Gemini Vision API scans (Menu Translation, Wayfinding, In-seat Delivery),
+ * and handles UI panels/overlays.
+ */
 export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearVector }) => {
   const { videoRef, canvasRef, captureFrame, isReady, error } = useCamera();
   const [loading, setLoading] = useState(false);
@@ -50,8 +57,7 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
     }
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-      const response = await fetch(`${backendUrl}/api/vision`, {
+      const response = await fetch(`${BACKEND_URL}/api/vision`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -116,6 +122,7 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
     }
   };
 
+
   const closeSheet = () => {
     setSheetContent(null);
     setLocalVector(null);
@@ -140,6 +147,7 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
           ref={videoRef}
           playsInline
           muted
+          aria-label="AR Live Viewfinder Feed"
           style={{
             width: '100%',
             height: '100%',
@@ -152,6 +160,8 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
       ) : (
         // Camera Permission/Desktop Fallback Graphic
         <div
+          role="region"
+          aria-label="Camera Simulation Backdrop"
           style={{
             width: '100%',
             height: '100%',
@@ -167,7 +177,7 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
             background: 'radial-gradient(circle, #10162A 0%, #05070D 100%)',
           }}
         >
-          <span style={{ fontSize: '48px', marginBottom: '16px' }}>🎥</span>
+          <span role="img" aria-label="Camera icon" style={{ fontSize: '48px', marginBottom: '16px' }}>🎥</span>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', color: '#FFF' }}>
             CAMERA FEED SIMULATOR
           </h3>
@@ -198,6 +208,8 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
       {/* 3. Loading Spinner Overlay */}
       {loading && (
         <div
+          role="status"
+          aria-live="polite"
           style={{
             position: 'absolute',
             top: 0,
@@ -231,6 +243,8 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
       {/* 4. Frosted Glass Bottom HUD Panel */}
       <div
         className="glass-panel"
+        role="group"
+        aria-label="AR HUD Controls"
         style={{
           position: 'absolute',
           bottom: '20px',
@@ -245,7 +259,9 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
         }}
       >
         <button
+          id="btn-scan-menu"
           onClick={() => handleAction('MENU_TRANSLATION')}
+          aria-label="Scan food stall menu board to translate it to English"
           style={{
             flex: 1,
             backgroundColor: 'rgba(255,255,255,0.07)',
@@ -265,12 +281,14 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
           onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)')}
           onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)')}
         >
-          <span>🔍</span>
+          <span role="img" aria-label="Magnifying glass icon">🔍</span>
           <span>Scan Menu</span>
         </button>
 
         <button
+          id="btn-find-route"
           onClick={() => handleAction('WAYFINDING')}
+          aria-label="Scan current direction to load wayfinding arrow"
           style={{
             flex: 1,
             backgroundColor: 'rgba(0, 165, 80, 0.2)',
@@ -290,12 +308,14 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
           onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(0, 165, 80, 0.35)')}
           onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgba(0, 165, 80, 0.2)')}
         >
-          <span>🗺</span>
+          <span role="img" aria-label="Map icon">🗺</span>
           <span>Find Route</span>
         </button>
 
         <button
+          id="btn-order-seat"
           onClick={() => handleAction('SEAT_DELIVERY')}
+          aria-label="Scan seat number for in-seat delivery validation"
           style={{
             flex: 1,
             backgroundColor: 'rgba(255,255,255,0.07)',
@@ -315,7 +335,7 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
           onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)')}
           onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)')}
         >
-          <span>🪑</span>
+          <span role="img" aria-label="Seat chair icon">🪑</span>
           <span>Order Seat</span>
         </button>
       </div>
@@ -324,6 +344,9 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
       {sheetContent && (
         <div
           className="glass-panel"
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby="hud-sheet-title"
           style={{
             position: 'absolute',
             bottom: 0,
@@ -350,7 +373,7 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
             }}
           >
             <div>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '22px', letterSpacing: '0.5px' }}>
+              <h3 id="hud-sheet-title" style={{ fontFamily: 'var(--font-display)', fontSize: '22px', letterSpacing: '0.5px' }}>
                 {sheetContent.title}
               </h3>
               {sheetContent.fallbackUsed && (
@@ -373,6 +396,7 @@ export const ARConcierge: React.FC<ARConciergeProps> = ({ activeVector, onClearV
             </div>
             <button
               onClick={closeSheet}
+              aria-label="Close information sheet"
               style={{
                 background: 'none',
                 border: 'none',

@@ -1,5 +1,13 @@
+"""
+The FIFA Nexus Matrix - Multimodal Vision Router.
+Handles integrations with Google Gemini API for stadium seat delivery, wayfinding,
+and menu translation, with local fallbacks for high resiliency.
+"""
+
 import os
 import logging
+from datetime import datetime, timezone
+from typing import Dict, Any
 import httpx
 from fastapi import APIRouter, HTTPException, status
 from app.models.schemas import VisionRequest, VisionResponse, TranslationItem, WayfindingVector, VoucherRedemption
@@ -7,8 +15,13 @@ from app.models.schemas import VisionRequest, VisionResponse, TranslationItem, W
 logger = logging.getLogger("nexus-vision")
 router = APIRouter()
 
+# Named Constants
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024  # 5MB limit
+MAX_BASE64_CHARS = int(MAX_IMAGE_SIZE_BYTES * (4 / 3))
+
 # Local mock datasets for offline mode
-MOCK_TRANSLATIONS = {
+MOCK_TRANSLATIONS: Dict[str, list] = {
     "German": [
         {"original": "Bratwurst mit Senf", "translated": "Grilled Sausage with Mustard", "price_usd": 12.00},
         {"original": "Pretzel mit Käse", "translated": "Pretzel with Cheese Dip", "price_usd": 8.00},
@@ -22,10 +35,22 @@ MOCK_TRANSLATIONS = {
 }
 
 @router.post("/api/vision", response_model=VisionResponse)
-async def analyze_vision_frame(request: VisionRequest):
+async def analyze_vision_frame(request: VisionRequest) -> VisionResponse:
+    """
+    Analyzes live camera frames from the WebAR client.
+    Supports Menu Translation, Wayfinding orientation, and Seat-delivery checking.
+    Utilizes the Google Gemini API with fallback mock responses.
+    """
+    # Security: Validate base64 image size to prevent memory abuse
+    if len(request.image_b64) > MAX_BASE64_CHARS:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Uploaded base64 image payload exceeds the maximum safety limit of 5MB."
+        )
+
     api_key = os.getenv("GEMINI_API_KEY", "your_key")
     use_fallback = False
-    result_data = {}
+    result_data: Dict[str, Any] = {}
 
     # If the key is default/placeholder, use local mock immediately
     if api_key == "your_key" or not api_key:
@@ -33,7 +58,7 @@ async def analyze_vision_frame(request: VisionRequest):
         logger.info("Using local mock fallback for Gemini Vision (No API key).")
     else:
         # Call Google Gemini API
-        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        gemini_url = f"{GEMINI_BASE_URL}?key={api_key}"
         
         # Prepare content query prompt depending on request mode
         prompt = (
@@ -110,13 +135,14 @@ async def analyze_vision_frame(request: VisionRequest):
     )
 
 @router.post("/api/voucher-redeemed")
-async def redeem_voucher(request: VoucherRedemption):
+async def redeem_voucher(request: VoucherRedemption) -> Dict[str, Any]:
     """
-    Logs active fan voucher redemptions.
+    Logs active fan voucher redemptions for crowd redistribution monitoring.
     """
     logger.warning(f"VOUCHER REDEEMED: Code: {request.voucher_code} in Zone: {request.fan_zone}")
     return {
         "success": True,
         "message": f"Voucher {request.voucher_code} successfully redeemed.",
-        "timestamp": os.getenv("TIMESTAMP") or "2026-07-16T05:30:54Z"
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
+

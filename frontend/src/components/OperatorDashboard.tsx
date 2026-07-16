@@ -1,5 +1,6 @@
 import React from 'react';
 import { ZoneTelemetry } from '../hooks/useWebSocket';
+import { WARNING_DENSITY_THRESHOLD, CRITICAL_DENSITY_THRESHOLD } from '../config';
 
 interface OperatorDashboardProps {
   zoneData: ZoneTelemetry[];
@@ -11,19 +12,22 @@ export const OperatorDashboard: React.FC<OperatorDashboardProps> = ({ zoneData, 
   const defaultZonesList = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'C3', 'C4'];
 
   const getStatusColor = (density: number) => {
-    if (density < 1.5) return 'var(--color-primary)';
-    if (density < 2.2) return 'var(--color-accent)';
+    if (density < WARNING_DENSITY_THRESHOLD) return 'var(--color-primary)';
+    if (density < CRITICAL_DENSITY_THRESHOLD) return 'var(--color-accent)';
     return 'var(--color-danger)';
   };
 
   const getStatusLabel = (density: number) => {
-    if (density < 1.5) return 'SAFE';
-    if (density < 2.2) return 'WARNING';
+    if (density < WARNING_DENSITY_THRESHOLD) return 'SAFE';
+    if (density < CRITICAL_DENSITY_THRESHOLD) return 'WARNING';
     return 'CRITICAL';
   };
 
+
   return (
     <div
+      role="region"
+      aria-label="Operator Core Dashboard Panel"
       style={{
         padding: '24px',
         backgroundColor: 'rgba(16, 22, 42, 0.45)',
@@ -55,7 +59,12 @@ export const OperatorDashboard: React.FC<OperatorDashboardProps> = ({ zoneData, 
         </div>
 
         {/* Connection Dot */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div 
+          role="status" 
+          aria-live="polite" 
+          aria-label={`Server Connection: ${connectionStatus}`}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
           <div
             style={{
               width: '10px',
@@ -81,6 +90,8 @@ export const OperatorDashboard: React.FC<OperatorDashboardProps> = ({ zoneData, 
 
       {/* Grid of Stadium Zones */}
       <div
+        role="list"
+        aria-label="Stadium zones telemetry cards grid"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
@@ -103,6 +114,8 @@ export const OperatorDashboard: React.FC<OperatorDashboardProps> = ({ zoneData, 
           return (
             <div
               key={zoneId}
+              role="listitem"
+              aria-label={`Zone ${zoneId}. Current density ${telemetry ? density.toFixed(2) : 'unknown'} pax/m². Projected 15-minute density ${telemetry ? predicted.toFixed(2) : 'unknown'} pax/m². Status: ${telemetry ? statusLabel : 'offline'}.`}
               className="glass-panel"
               style={{
                 padding: '16px',
@@ -170,7 +183,7 @@ export const OperatorDashboard: React.FC<OperatorDashboardProps> = ({ zoneData, 
                 {/* Trend Chevron */}
                 {telemetry && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                    <span style={{ fontSize: '18px', lineHeight: 1 }}>
+                    <span role="img" aria-label={isStable ? 'stable trend' : isUpTrend ? 'increasing trend' : 'decreasing trend'} style={{ fontSize: '18px', lineHeight: 1 }}>
                       {isStable ? '➔' : isUpTrend ? '🔺' : '🔻'}
                     </span>
                     <span
@@ -190,5 +203,6 @@ export const OperatorDashboard: React.FC<OperatorDashboardProps> = ({ zoneData, 
         })}
       </div>
     </div>
+
   );
 };

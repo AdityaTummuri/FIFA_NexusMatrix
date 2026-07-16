@@ -35,8 +35,20 @@ export const SurgeModal: React.FC<SurgeModalProps> = ({ alert, onClose, onNaviga
     );
   };
 
+  const modalRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Focus the modal container on mount for screen readers and keyboard accessibility
+    if (modalRef.current) {
+      modalRef.current.focus();
+    }
+  }, []);
+
   return (
     <div
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="surge-modal-title"
       style={{
         position: 'fixed',
         top: 0,
@@ -53,6 +65,8 @@ export const SurgeModal: React.FC<SurgeModalProps> = ({ alert, onClose, onNaviga
       }}
     >
       <div
+        ref={modalRef}
+        tabIndex={-1}
         className="glass-panel"
         style={{
           width: '100%',
@@ -63,10 +77,12 @@ export const SurgeModal: React.FC<SurgeModalProps> = ({ alert, onClose, onNaviga
           textAlign: 'center',
           boxShadow: '0 10px 40px rgba(232, 50, 10, 0.2)',
           position: 'relative',
+          outline: 'none', // Remove default focus outline since we handle container focus
         }}
       >
         {/* Pulsing Alert Indicator */}
         <div
+          role="presentation"
           style={{
             width: '12px',
             height: '12px',
@@ -78,6 +94,7 @@ export const SurgeModal: React.FC<SurgeModalProps> = ({ alert, onClose, onNaviga
         />
 
         <h2
+          id="surge-modal-title"
           style={{
             fontFamily: 'var(--font-display)',
             fontSize: '36px',
@@ -103,6 +120,8 @@ export const SurgeModal: React.FC<SurgeModalProps> = ({ alert, onClose, onNaviga
 
         {/* Voucher Card Container */}
         <div
+          role="region"
+          aria-label="Voucher Details"
           style={{
             background: 'linear-gradient(135deg, rgba(0, 165, 80, 0.15) 0%, rgba(245, 197, 24, 0.15) 100%)',
             border: '1px solid rgba(255, 255, 255, 0.15)',
@@ -155,7 +174,12 @@ export const SurgeModal: React.FC<SurgeModalProps> = ({ alert, onClose, onNaviga
               <span style={{ display: 'block', fontSize: '9px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
                 Redeem Within
               </span>
-              <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--color-danger)', fontFamily: 'monospace' }}>
+              <span 
+                role="timer"
+                aria-live="assertive"
+                aria-label={`Time remaining: ${timeLeft > 0 ? formatTime(timeLeft) : 'expired'}`}
+                style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--color-danger)', fontFamily: 'monospace' }}
+              >
                 {timeLeft > 0 ? formatTime(timeLeft) : 'EXPIRED'}
               </span>
             </div>
@@ -165,8 +189,10 @@ export const SurgeModal: React.FC<SurgeModalProps> = ({ alert, onClose, onNaviga
         {/* Action Buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <button
+            id="btn-modal-navigate"
             onClick={handleNavigateClick}
             disabled={timeLeft <= 0}
+            aria-label={`Navigate now to Zone ${alert.triggers.fan_incentive.destination_zone} to redeem voucher`}
             style={{
               backgroundColor: 'var(--color-primary)',
               color: '#FFF',
@@ -186,7 +212,9 @@ export const SurgeModal: React.FC<SurgeModalProps> = ({ alert, onClose, onNaviga
           </button>
           
           <button
+            id="btn-modal-dismiss"
             onClick={onClose}
+            aria-label="Dismiss crowd surge warning modal"
             style={{
               backgroundColor: 'transparent',
               color: 'var(--color-text-muted)',
@@ -206,5 +234,6 @@ export const SurgeModal: React.FC<SurgeModalProps> = ({ alert, onClose, onNaviga
         </div>
       </div>
     </div>
+
   );
 };

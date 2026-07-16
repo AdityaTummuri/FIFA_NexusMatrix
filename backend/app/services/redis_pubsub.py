@@ -1,12 +1,15 @@
 import os
 import logging
 import redis
-from typing import Callable, Any
 
 logger = logging.getLogger("nexus-redis")
 
 class RedisPubSub:
-    def __init__(self):
+    """
+    Service wrapper for Redis Pub/Sub operations, falling back gracefully
+    to an offline/in-memory mode if Redis connectivity is unavailable.
+    """
+    def __init__(self) -> None:
         redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
         try:
             self.client = redis.from_url(redis_url, socket_connect_timeout=2)
@@ -20,6 +23,10 @@ class RedisPubSub:
             logger.error(f"Redis connection failed. Running in memory-only mode. Details: {e}")
 
     def publish(self, channel: str, message: str) -> bool:
+        """
+        Publishes a message to a specific Redis channel.
+        Returns True if successful, False if Redis is disconnected or on failure.
+        """
         if not self.connected or not self.client:
             logger.debug(f"[Redis offline] Skip publish to {channel}: {message[:100]}...")
             return False
@@ -32,3 +39,4 @@ class RedisPubSub:
 
 # Singleton instance
 redis_service = RedisPubSub()
+
