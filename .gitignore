@@ -1,0 +1,21 @@
+# Environment configurations
+backend/.env
+frontend/.env.local
+.env
+.env.*
+
+# Python caches and virtualenvs
+__pycache__/
+*.pyc
+.venv/
+env/
+venv/
+.pytest_cache/
+
+# Node modules and build output
+node_modules/
+dist/
+.ignored/
+
+# System files
+.DS_Store
